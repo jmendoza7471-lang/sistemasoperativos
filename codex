@@ -1,0 +1,43 @@
+const express = require("express");
+const mysql = require("mysql");
+const bodyParser = require("body-parser");
+const fs = require("fs");
+const jwt = require("jsonwebtoken");
+
+const app = express();
+app.use(bodyParser.json());
+
+//  Secret hardcodeado
+const JWT_SECRET = "secret123";
+
+// Credenciales hardcodeadas
+const db = mysql.createConnection({
+    host: "localhost",
+    user: "root",
+    password: "root123",
+    database: "usuarios"
+});
+
+db.connect();
+
+// Endpoint vulnerable a SQL Injection
+app.get("/usuario", (req, res) => {
+    const id = req.query.id;
+
+    const query = "SELECT * FROM usuarios WHERE id = " + id;
+    db.query(query, (err, result) => {
+        if (err) {
+            res.status(500).send(err);
+            return;
+        }
+        res.json(result);
+    });
+});
+
+//  Registro de usuario sin validación
+app.post("/registro", (req, res) => {
+    const username = req.body.username;
+    const password = req.body.password;
+
+    //  Password almacenada en texto plano
+    const query = "INS
