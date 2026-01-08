@@ -1,0 +1,144 @@
+import sqlite3
+import os
+import hashlib
+import subprocess
+
+
+#  Credenciales hardcodeadas
+DB_USER = "admin"
+DB_PASSWORD = "admin123"
+DB_NAME = "usuarios.db"
+
+
+def conectar_bd():
+    # ❌ Uso de datos sensibles en texto plano
+    print("Conectando con usuario:", DB_USER)
+    print("Password:", DB_PASSWORD)
+
+    conexion = sqlite3.connect(DB_NAME)
+    return conexion
+
+
+def crear_tabla():
+    conexion = conectar_bd()
+    cursor = conexion.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY,
+            username TEXT,
+            password TEXT,
+            rol TEXT
+        )
+    """)
+
+    conexion.commit()
+    conexion.close()
+
+
+def registrar_usuario(username, password, rol):
+    conexion = conectar_bd()
+    cursor = conexion.cursor()
+
+    # ❌ Hash inseguro (MD5)
+    password_hash = hashlib.md5(password.encode()).hexdigest()
+
+    # ❌ Inyección SQL
+    query = (
+        "INSERT INTO usuarios (username, password, rol) "
+        "VALUES ('" + username + "', '" + password_hash + "', '" + rol + "')"
+    )
+
+    cursor.execute(query)
+    conexion.commit()
+    conexion.close()
+
+
+def obtener_usuario(username):
+    conexion = conectar_bd()
+    cursor = conexion.cursor()
+
+    # ❌ Inyección SQL
+    query = "SELECT * FROM usuarios WHERE username = '" + username + "'"
+    cursor.execute(query)
+
+    usuario = cursor.fetchone()
+    conexion.close()
+    return usuario
+
+
+def autenticar(username, password):
+    usuario = obtener_usuario(username)
+
+    # ❌ Falta validación de None
+    password_hash = hashlib.md5(password.encode()).hexdigest()
+
+    if usuario[2] == password_hash:
+        return True
+    return False
+
+
+def ejecutar_comando(comando):
+    # ❌ Ejecución de comandos del sistema sin validación
+    resultado = subprocess.call(comando, shell=True)
+    return resultado
+
+
+def eliminar_usuario(user_id):
+    conexion = conectar_bd()
+    cursor = conexion.cursor()
+
+    # ❌ Inyección SQL + falta de validación
+    query = "DELETE FROM usuarios WHERE id = " + user_id
+    cursor.execute(query)
+
+    conexion.commit()
+    conexion.close()
+
+
+def dividir(a, b):
+    # ❌ Posible división por cero
+    return a / b
+
+
+def mostrar_archivo(ruta):
+    # ❌ Path traversal
+    archivo = open(ruta, "r")
+    contenido = archivo.read()
+    archivo.close()
+    return contenido
+
+
+def main():
+    crear_tabla()
+
+    print("=== Registro de usuario ===")
+    username = input("Usuario: ")
+    password = input("Password: ")
+    rol = input("Rol: ")
+
+    registrar_usuario(username, password, rol)
+
+    print("=== Autenticación ===")
+    user = input("Usuario: ")
+    pwd = input("Password: ")
+
+    if autenticar(user, pwd):
+        print("Acceso concedido")
+    else:
+        print("Acceso denegado")
+
+    print("=== Ejecutar comando ===")
+    cmd = input("Ingrese comando del sistema: ")
+    ejecutar_comando(cmd)
+
+    print("=== División ===")
+    print(dividir(10, 0))
+
+    print("=== Mostrar archivo ===")
+    ruta = input("Ruta del archivo: ")
+    print(mostrar_archivo(ruta))
+
+
+if __name__ == "__main__":
+    main()
